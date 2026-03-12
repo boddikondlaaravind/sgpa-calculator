@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGPA Calculator — Engineering</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0c10; --surface: #111318; --surface2: #181c24;
+    --border: #232838; --accent: #00e5ff; --accent2: #ff4d6d;
+    --accent3: #b5ff4d; --text: #e8eaf0; --muted: #6b7280; --grid: #ffffff08;
+  }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.12; pointer-events: none; z-index: 0; animation: drift 12s ease-in-out infinite alternate; }
+  .orb-1 { width: 500px; height: 500px; background: var(--accent); top: -100px; left: -100px; }
+  .orb-2 { width: 400px; height: 400px; background: var(--accent2); bottom: -100px; right: -50px; animation-delay: 3s; }
+  .orb-3 { width: 300px; height: 300px; background: var(--accent3); top: 50%; left: 50%; animation-delay: 6s; }
+  @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(30px,20px) scale(1.05); } }
+  .container { max-width: 860px; margin: 0 auto; padding: 0 24px 80px; position: relative; z-index: 1; }
+  header { padding: 48px 0 40px; display: flex; align-items: flex-start; gap: 20px; flex-direction: column; }
+  .tag { font-size: 11px; font-weight: 500; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); background: #00e5ff12; border: 1px solid #00e5ff30; padding: 4px 12px; border-radius: 2px; display: inline-block; }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(36px,7vw,64px); font-weight: 800; line-height: 1.05; letter-spacing: -0.03em; }
+  h1 span { background: linear-gradient(135deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 500px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 28px; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.5; }
+  .semester-row { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+  .semester-row label { font-size: 12px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .sem-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; padding: 6px 14px; border-radius: 2px; cursor: pointer; transition: all 0.15s; }
+  .sem-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .sem-btn.active { background: #00e5ff15; border-color: var(--accent); color: var(--accent); }
+  .table-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 40px; gap: 8px; padding: 8px 12px; margin-bottom: 8px; }
+  .table-header span { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  .subjects-list { display: flex; flex-direction: column; gap: 8px; }
+  .subject-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 40px; gap: 8px; align-items: center; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 10px 12px; animation: rowIn 0.2s ease-out both; }
+  @keyframes rowIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+  .subject-row input { background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; padding: 4px 2px; width: 100%; outline: none; transition: border-color 0.15s; }
+  .subject-row input:focus { border-color: var(--accent); }
+  .grade-display { font-size: 13px; font-weight: 500; padding: 4px 0; letter-spacing: 0.05em; }
+  .delete-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; line-height: 1; transition: color 0.15s; display: flex; align-items: center; justify-content: center; }
+  .delete-btn:hover { color: var(--accent2); }
+  .add-btn { margin-top: 12px; width: 100%; padding: 12px; background: transparent; border: 1px dashed var(--border); color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: 0.05em; border-radius: 3px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .add-btn:hover { border-color: var(--accent); color: var(--accent); background: #00e5ff08; }
+  .result-card { margin-top: 24px; padding: 28px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; position: relative; overflow: hidden; }
+  .result-bg { position: absolute; inset: 0; opacity: 0; transition: opacity 0.5s; background: radial-gradient(ellipse at 50% 0%, #00e5ff08 0%, transparent 60%); pointer-events: none; }
+  .result-card.show .result-bg { opacity: 1; }
+  .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; position: relative; }
+  .result-stat { padding: 20px; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; text-align: center; }
+  .result-stat .stat-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: block; }
+  .result-stat .stat-value { font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800; line-height: 1; background: linear-gradient(135deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .result-stat .stat-sub { font-size: 12px; color: var(--muted); margin-top: 6px; display: block; }
+  .perf-bar-wrap { margin-top: 20px; position: relative; }
+  .perf-bar-label { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 11px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .perf-bar-track { height: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 99px; overflow: hidden; }
+  .perf-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3)); border-radius: 99px; width: 0%; transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1); }
+  .grading-key { margin-top: 28px; padding: 20px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; }
+  .grading-key h3 { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 14px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .grade-table { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+  .grade-pill { padding: 8px 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  .grade-pill .gp { color: var(--text); font-weight: 500; }
+  .grade-pill .gv { color: var(--muted); font-size: 11px; }
+  .actions { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .calc-btn { flex: 1; min-width: 140px; padding: 14px 24px; background: var(--accent); color: var(--bg); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 0.05em; border: none; border-radius: 3px; cursor: pointer; transition: all 0.15s; text-transform: uppercase; }
+  .calc-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px #00e5ff30; }
+  .reset-btn { padding: 14px 24px; background: transparent; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; border: 1px solid var(--border); border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+  .reset-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .classification { margin-top: 16px; padding: 12px 16px; border-radius: 3px; font-size: 13px; font-weight: 500; display: none; align-items: center; gap: 10px; }
+  .classification.show { display: flex; }
+  .classification.excellent { background: #00e5ff10; border: 1px solid #00e5ff30; color: var(--accent); }
+  .classification.good { background: #b5ff4d10; border: 1px solid #b5ff4d30; color: var(--accent3); }
+  .classification.average { background: #ffaa0010; border: 1px solid #ffaa0030; color: #ffaa00; }
+  .classification.poor { background: #ff4d6d10; border: 1px solid #ff4d6d30; color: var(--accent2); }
+  .classification .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .count-wrap { padding: 16px 0 8px; }
+  .count-label { display: block; font-size: 13px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 16px; text-transform: uppercase; }
+  .count-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .count-stepper { width: 40px; height: 40px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 20px; font-family: 'DM Mono', monospace; border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+  .count-stepper:hover { border-color: var(--accent); color: var(--accent); }
+  #subjectCount { width: 80px; height: 40px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; text-align: center; border-radius: 3px; outline: none; transition: border-color 0.15s; }
+  #subjectCount:focus { border-color: var(--accent); }
+  #subjectCount::-webkit-inner-spin-button, #subjectCount::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .go-btn { padding: 10px 24px; background: var(--accent); color: var(--bg); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; border: none; border-radius: 3px; cursor: pointer; transition: all 0.15s; height: 40px; }
+  .go-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px #00e5ff30; }
+  .count-hint { font-size: 11px; color: var(--muted); margin-top: 10px; letter-spacing: 0.05em; }
+  footer { text-align: center; padding: 32px 0 0; color: var(--muted); font-size: 12px; letter-spacing: 0.05em; }
+  @media (max-width: 600px) {
+    .table-header, .subject-row { grid-template-columns: 1.5fr 1fr 1fr 40px; }
+    .table-header span:nth-child(4), .subject-row .grade-display { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+<div class="container">
+  <header>
+    <span class="tag">Engineering Academic Tool</span>
+    <h1>SGPA<br><span>Calculator</span></h1>
+    <p class="subtitle">Enter your subject names, credit hours, and marks to instantly compute your Semester Grade Point Average.</p>
+  </header>
+
+  <div class="card">
+    <div class="semester-row">
+      <label>Semester —</label>
+      <button class="sem-btn active" onclick="setSem(this)">SEM 1</button>
+      <button class="sem-btn" onclick="setSem(this)">SEM 2</button>
+      <button class="sem-btn" onclick="setSem(this)">SEM 3</button>
+      <button class="sem-btn" onclick="setSem(this)">SEM 4</button>
+      <button class="sem-btn" onclick="setSem(this)">SEM 5</button>
+      <button class="sem-btn" onclick="setSem(this)">SEM 6</button>
+      <button class="sem-btn" onclick="setSem(this)">SEM 7</button>
+      <button class="sem-btn" onclick="setSem(this)">SEM 8</button>
+    </div>
+    <!-- Step 1 -->
+    <div id="stepCount">
+      <div class="count-wrap">
+        <label class="count-label">How many subjects this semester?</label>
+        <div class="count-row">
+          <button class="count-stepper" onclick="changeCount(-1)">−</button>
+          <input type="number" id="subjectCount" value="5" min="1" max="20" oninput="clampCount(this)">
+          <button class="count-stepper" onclick="changeCount(1)">+</button>
+          <button class="go-btn" onclick="generateSubjects()">Generate &rarr;</button>
+        </div>
+        <p class="count-hint">Enter a number between 1 and 20</p>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="stepSubjects" style="display:none">
+      <div class="table-header">
+        <span>Subject</span>
+        <span>Credits</span>
+        <span>Marks /100</span>
+        <span>Grade</span>
+        <span></span>
+      </div>
+      <div class="subjects-list" id="subjectsList"></div>
+      <div class="actions">
+        <button class="calc-btn" onclick="calculate()">Calculate SGPA</button>
+        <button class="reset-btn" onclick="resetAll()">&larr; Change Count</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-bg"></div>
+    <div class="result-grid">
+      <div class="result-stat">
+        <span class="stat-label">SGPA</span>
+        <span class="stat-value" id="sgpaValue">—</span>
+        <span class="stat-sub">out of 10.0</span>
+      </div>
+      <div class="result-stat">
+        <span class="stat-label">Total Credits</span>
+        <span class="stat-value" id="creditsValue">—</span>
+        <span class="stat-sub">credit hours</span>
+      </div>
+      <div class="result-stat">
+        <span class="stat-label">Percentage</span>
+        <span class="stat-value" id="percentValue">—</span>
+        <span class="stat-sub">equivalent</span>
+      </div>
+    </div>
+    <div class="perf-bar-wrap" id="perfBarWrap" style="display:none">
+      <div class="perf-bar-label"><span>Performance</span><span id="perfLabel">—</span></div>
+      <div class="perf-bar-track"><div class="perf-bar-fill" id="perfBar"></div></div>
+    </div>
+    <div class="classification" id="classificationBadge">
+      <span class="dot"></span>
+      <span id="classificationText"></span>
+    </div>
+  </div>
+
+  <div class="grading-key">
+    <h3>Grading Scale — A+, A, B, C, D, E, F</h3>
+    <div class="grade-table" id="gradeTable"></div>
+  </div>
+
+  <footer>SGPA Calculator · Engineering Academic Tool · 2026</footer>
+</div>
+
+<script>
+const GRADE_SCALE = [
+  { min: 90, max: 100, grade: 'A+', points: 10, label: 'Outstanding'   },
+  { min: 80, max: 89,  grade: 'A',  points: 9,  label: 'Excellent'     },
+  { min: 70, max: 79,  grade: 'B',  points: 8,  label: 'Very Good'     },
+  { min: 60, max: 69,  grade: 'C',  points: 7,  label: 'Good'          },
+  { min: 50, max: 59,  grade: 'D',  points: 6,  label: 'Average'       },
+  { min: 40, max: 49,  grade: 'E',  points: 5,  label: 'Pass'          },
+  { min: 0,  max: 39,  grade: 'F',  points: 0,  label: 'Fail'          },
+];
+
+// ranges for display in grading key
+const GRADE_RANGES = ['90–100','80–89','70–79','60–69','50–59','40–49','0–39'];
+
+let subjects = [];
+let subjectIdCounter = 0;
+
+function getGrade(marks) {
+  if (marks === '' || isNaN(marks)) return { grade: '—', points: null };
+  const m = parseFloat(marks);
+  if (m < 0 || m > 100) return { grade: '!', points: null };
+  for (const g of GRADE_SCALE) { if (m >= g.min) return g; }
+  return GRADE_SCALE[GRADE_SCALE.length - 1];
+}
+
+function getGradeColor(grade) {
+  const c = {
+    'A+': '#00e5ff', 'A': '#b5ff4d',
+    'B':  '#69ff8a', 'C': '#ffdf4d',
+    'D':  '#ffa94d', 'E': '#ff6b4d',
+    'F':  '#ff4d6d', '—': '#6b7280', '!': '#ff4d6d'
+  };
+  return c[grade] || '#6b7280';
+}
+
+function addSubject(name='', credits='', marks='') {
+  const id = ++subjectIdCounter;
+  subjects.push({ id, name, credits, marks });
+  renderSubjects();
+  setTimeout(() => { const el = document.getElementById('name-'+id); if(el) el.focus(); }, 50);
+}
+
+function removeSubject(id) {
+  subjects = subjects.filter(s => s.id !== id);
+  renderSubjects();
+}
+
+function updateSubject(id, field, value) {
+  const s = subjects.find(s => s.id === id);
+  if (s) s[field] = value;
+  if (field === 'marks') {
+    const g = getGrade(value);
+    const el = document.getElementById('grade-'+id);
+    if (el) { el.textContent = g.grade; el.style.color = getGradeColor(g.grade); }
+  }
+}
+
+function renderSubjects() {
+  const list = document.getElementById('subjectsList');
+  list.innerHTML = '';
+  subjects.forEach((s, idx) => {
+    const g = getGrade(s.marks);
+    const row = document.createElement('div');
+    row.className = 'subject-row';
+    row.style.animationDelay = idx * 0.04 + 's';
+    row.innerHTML = `
+      <input type="text" id="name-${s.id}" placeholder="Subject ${idx+1}" value="${s.name}" oninput="updateSubject(${s.id},'name',this.value)">
+      <input type="number" id="credits-${s.id}" placeholder="3" min="1" max="6" value="${s.credits}" oninput="updateSubject(${s.id},'credits',this.value)">
+      <input type="number" id="marks-${s.id}" placeholder="75" min="0" max="100" value="${s.marks}" oninput="updateSubject(${s.id},'marks',this.value)">
+      <span class="grade-display" id="grade-${s.id}" style="color:${getGradeColor(g.grade)}">${g.grade}</span>
+      <button class="delete-btn" onclick="removeSubject(${s.id})" title="Remove">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>`;
+    list.appendChild(row);
+  });
+}
+
+function calculate() {
+  if (!subjects.length) { alert('Please add at least one subject.'); return; }
+  let totalWeighted = 0, totalCredits = 0;
+  for (const s of subjects) {
+    const credits = parseFloat(s.credits);
+    const g = getGrade(s.marks);
+    if (!s.credits || isNaN(credits) || credits <= 0) { alert('Please enter valid credits for ' + (s.name || 'a subject') + '.'); return; }
+    if (s.marks === '' || isNaN(parseFloat(s.marks))) { alert('Please enter marks for ' + (s.name || 'a subject') + '.'); return; }
+    if (g.points === null) { alert('Marks must be 0–100 for ' + (s.name || 'a subject') + '.'); return; }
+    totalWeighted += credits * g.points;
+    totalCredits += credits;
+  }
+  const sgpa = totalWeighted / totalCredits;
+  const percent = ((sgpa - 0.5) * 10).toFixed(1);
+  document.getElementById('sgpaValue').textContent = sgpa.toFixed(2);
+  document.getElementById('creditsValue').textContent = totalCredits;
+  document.getElementById('percentValue').textContent = percent + '%';
+  document.getElementById('perfBarWrap').style.display = 'block';
+  setTimeout(() => { document.getElementById('perfBar').style.width = (sgpa/10*100) + '%'; }, 100);
+  document.getElementById('perfLabel').textContent = sgpa.toFixed(2) + ' / 10';
+  const badge = document.getElementById('classificationBadge');
+  const text = document.getElementById('classificationText');
+  badge.className = 'classification show';
+  if (sgpa >= 9) { badge.classList.add('excellent'); text.textContent = '🏆 Outstanding — First Class with Distinction'; }
+  else if (sgpa >= 7.5) { badge.classList.add('good'); text.textContent = '⭐ First Class'; }
+  else if (sgpa >= 6) { badge.classList.add('average'); text.textContent = '✓ Second Class'; }
+  else if (sgpa >= 4) { badge.classList.add('poor'); text.textContent = '⚠ Pass Class'; }
+  else { badge.classList.add('poor'); text.textContent = '✗ Fail — SGPA below 4.0'; }
+  document.getElementById('resultCard').classList.add('show');
+  document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function setSem(btn) {
+  document.querySelectorAll('.sem-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function buildGradeTable() {
+  const table = document.getElementById('gradeTable');
+  GRADE_SCALE.forEach((g, i) => {
+    const pill = document.createElement('div');
+    pill.className = 'grade-pill';
+    pill.innerHTML = `<span class="gp" style="color:${getGradeColor(g.grade)}">${g.grade} · ${g.points}pts</span><span class="gv">${GRADE_RANGES[i]}</span>`;
+    table.appendChild(pill);
+  });
+}
+
+function generateSubjects() {
+  const n = parseInt(document.getElementById('subjectCount').value);
+  if (isNaN(n) || n < 1 || n > 20) { alert('Please enter a number between 1 and 20.'); return; }
+  subjects = []; subjectIdCounter = 0;
+  for (let i = 0; i < n; i++) addSubject('', '', '');
+  document.getElementById('stepCount').style.display = 'none';
+  document.getElementById('stepSubjects').style.display = 'block';
+  // focus first name input
+  setTimeout(() => { const el = document.getElementById('name-1'); if(el) el.focus(); }, 80);
+}
+
+function changeCount(delta) {
+  const inp = document.getElementById('subjectCount');
+  let val = parseInt(inp.value) || 5;
+  val = Math.min(20, Math.max(1, val + delta));
+  inp.value = val;
+}
+
+function clampCount(inp) {
+  let val = parseInt(inp.value);
+  if (!isNaN(val)) inp.value = Math.min(20, Math.max(1, val));
+}
+
+function resetAll() {
+  subjects = []; subjectIdCounter = 0;
+  document.getElementById('subjectsList').innerHTML = '';
+  document.getElementById('stepSubjects').style.display = 'none';
+  document.getElementById('stepCount').style.display = 'block';
+  document.getElementById('sgpaValue').textContent = '—';
+  document.getElementById('creditsValue').textContent = '—';
+  document.getElementById('percentValue').textContent = '—';
+  document.getElementById('perfBarWrap').style.display = 'none';
+  document.getElementById('perfBar').style.width = '0%';
+  document.getElementById('classificationBadge').className = 'classification';
+  document.getElementById('resultCard').classList.remove('show');
+}
+
+buildGradeTable();
+</script>
+</body>
+</html>
